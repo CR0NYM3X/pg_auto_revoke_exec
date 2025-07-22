@@ -16,10 +16,7 @@
 Este proyecto ayuda a reforzar la seguridad de tu base de datos:
 - Evita exposición accidental de funciones sensibles.
 - Impone políticas de acceso mínimas al momento de creación.
-- Reduce errores humanos al aplicar restricciones manuales.
-
- 
-
+- Reduce errores humanos al aplicar restricciones manuales. 
 
 ## 📋 Ejemplo de uso
 
@@ -36,7 +33,26 @@ NOTICE: ********** Por SEGURIDAD Se realizo el REVOKE EXECUTE al role PUBLIC ***
          FUNCTION: schema_name.demo_fn()
 ```
 
+## 🔍 Cómo revisar privilegios `EXECUTE` otorgados a `PUBLIC`
 
+Para verificar si el rol `PUBLIC` tiene acceso a una función específica, puedes ejecutar la siguiente consulta en tu base de datos:
+
+```sql
+SELECT DISTINCT
+    a.routine_schema,
+    grantee AS user_name,
+    a.routine_name,
+    b.routine_type,
+    privilege_type
+FROM information_schema.routine_privileges AS a
+LEFT JOIN information_schema.routines AS b
+    ON a.routine_name = b.routine_name
+WHERE
+    NOT a.routine_schema IN ('pg_catalog', 'information_schema')  -- Retira este filtro si quieres incluir funciones del sistema
+    AND a.grantee = 'PUBLIC'
+    AND a.routine_name = 'demo_fn'
+ORDER BY a.routine_schema, a.routine_name;
+```
  
 ## 📚 Referencia oficial 
 
