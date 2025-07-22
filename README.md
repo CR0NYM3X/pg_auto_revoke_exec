@@ -3,6 +3,9 @@
 🔐 **pg_auto_revoke_exec** es una Función de seguridad para PostgreSQL que supervisa la creación de funciones y procedimientos, revocando automáticamente el permiso `EXECUTE` del rol `PUBLIC` si está presente en la funcion. Esto refuerza la protección contra accesos no autorizados en entornos multiusuario o productivos.
 
 
+> ⚠️ **Nota:** Esta función **solo actúa sobre funciones y procedimientos creados recientemente**. No realiza cambios sobre objetos existentes en la base de datos antes de haber sido implementada.
+
+
 ##  ¿Qué hace?
 
 - Monitorea eventos `CREATE FUNCTION` y `CREATE PROCEDURE`.
@@ -23,7 +26,7 @@ Este proyecto ayuda a reforzar la seguridad de tu base de datos:
 Al ejecutar:
 
 ```sql
-CREATE FUNCTION demo_fn() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION demo_fn() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;
 ```
 
 Si el rol `PUBLIC` tiene permiso `EXECUTE`, será revocado automáticamente y recibirás un mensaje como:
