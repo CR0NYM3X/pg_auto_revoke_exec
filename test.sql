@@ -74,7 +74,7 @@ DROP ROLE usuario_anonimo;
 --- Comandos comentados para borrar las pruebas después de validar.
 --- ============================================================================
 
--- DROP FUNCTION IF EXISTS public.fn_test_estandar();
--- DROP FUNCTION IF EXISTS public.fn_test_sobrecarga(int);
--- DROP FUNCTION IF EXISTS public.fn_test_sobrecarga(int, int);
--- DROP FUNCTION IF EXISTS public."fn_test; DROP TABLE usuarios; --"();
+ DROP FUNCTION IF EXISTS public.fn_test_estandar();
+ DROP FUNCTION IF EXISTS public.fn_test_sobrecarga(int);
+ DROP FUNCTION IF EXISTS public.fn_test_sobrecarga(int, int);
+ DROP FUNCTION IF EXISTS public."fn_test; DROP TABLE usuarios; --"();
