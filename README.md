@@ -26,14 +26,13 @@ Este proyecto ayuda a reforzar la seguridad de tu base de datos:
 Al ejecutar:
 
 ```sql
-CREATE OR REPLACE FUNCTION demo_fn() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION public.demo_fn() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;
 ```
 
 Si el rol `PUBLIC` tiene permiso `EXECUTE`, será revocado automáticamente y recibirás un mensaje como:
 
 ```
-NOTICE: ********** Por SEGURIDAD Se realizo el REVOKE EXECUTE al role PUBLIC **********
-         FUNCTION: schema_name.demo_fn()
+NOTICE: AUDIT: Revocado EXECUTE a PUBLIC en FUNCTION: public.demo_fn()
 ```
 
 ## 🔍 Cómo revisar privilegios `EXECUTE` otorgados a `PUBLIC`
@@ -41,20 +40,22 @@ NOTICE: ********** Por SEGURIDAD Se realizo el REVOKE EXECUTE al role PUBLIC ***
 Para verificar si el rol `PUBLIC` tiene acceso a una función específica, puedes ejecutar la siguiente consulta en tu base de datos:
 
 ```sql
-SELECT DISTINCT
-    a.routine_schema,
-    grantee AS user_name,
-    a.routine_name,
-    b.routine_type,
-    privilege_type
-FROM information_schema.routine_privileges AS a
-LEFT JOIN information_schema.routines AS b
-    ON a.routine_name = b.routine_name
-WHERE
-    NOT a.routine_schema IN ('pg_catalog', 'information_schema')  -- Retira este filtro si quieres incluir funciones del sistema
-    AND a.grantee = 'PUBLIC'
-    AND a.routine_name = 'demo_fn'
-ORDER BY a.routine_schema, a.routine_name;
+
+SELECT 
+    n.nspname AS esquema,
+    p.proname AS nombre_funcion,
+    pg_get_function_arguments(p.oid) AS argumentos,
+    CASE 
+        WHEN p.proacl IS NULL THEN 'Defecto (Suele incluir PUBLIC)'
+        ELSE array_to_string(p.proacl, ', ') 
+    END AS lista_privilegios,
+    -- Esta columna es la prueba de fuego:
+    pg_catalog.has_function_privilege('public', p.oid, 'execute') AS public_puede_ejecutar
+FROM pg_catalog.pg_proc p
+JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public' 
+  AND p.proname IN ('demo_fn')
+ORDER BY p.proname;
 ```
  
 ## 📚 Referencia oficial 
