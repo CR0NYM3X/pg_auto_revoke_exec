@@ -27,44 +27,49 @@ RETURNS event_trigger
 SET client_min_messages='notice'
 AS $$
 DECLARE 
-    obj record;
+    v_obj record;
     v_has_public_access boolean;
+    -- ==========================================
+    -- CONFIGURACIÓN: TRUE para mostar los mensajes de aviso, FALSE para modo silencioso
+    v_show_notice boolean := true; 
+    -- ==========================================
 BEGIN
     -- 1. El bucle FOR procesa cada objeto del comando DDL (soporta scripts masivos)
-    FOR obj IN SELECT * FROM pg_catalog.pg_event_trigger_ddl_commands()
+    FOR v_obj IN SELECT * FROM pg_catalog.pg_event_trigger_ddl_commands()
     LOOP
-        -- 2. Filtramos solo por funciones y procedimientos
-        IF obj.object_type IN ('function', 'procedure') THEN
-            
-            -- 3. VALIDACIÓN DE ALTO RENDIMIENTO
-            -- Usamos el OID (objid) que es el índice primario del sistema. 
-            -- No hay nada más rápido que esto en PostgreSQL.
+        
+         -- 2. Filtramos solo por funciones y procedimientos
+        IF v_obj.object_type IN ('function', 'procedure') THEN
+                       
+            -- En caso de errores en validaciones en versiones viejitas usar esta
             /*SELECT EXISTS (
                 SELECT 1 
                 FROM pg_catalog.pg_proc p
-                WHERE p.oid = obj.objid 
+                WHERE p.oid = v_obj.objid 
                   AND (
                     p.proacl IS NULL OR -- NULL significa privilegios por defecto (PUBLIC puede)
                     pg_catalog.has_function_privilege('public', p.oid, 'execute')
                   )
             ) INTO v_has_public_access;*/
 
-              -- Versión minimalista
-            SELECT pg_catalog.has_function_privilege('public', obj.objid, 'execute') 
+            -- 3. Validación rápida de privilegios para PUBLIC
+            SELECT pg_catalog.has_function_privilege('public', v_obj.objid, 'execute') 
             INTO v_has_public_access;
 
             -- 4. ACCIÓN DIRECTA
             IF v_has_public_access THEN
-                -- Usamos object_identity porque ya viene escapado y con tipos de datos
-                -- Ejemplo: myschema.mi_func(int4, text)
+            
+                -- Ejecución del REVOKE
                 EXECUTE format('REVOKE EXECUTE ON %s %s FROM PUBLIC', 
-                               obj.object_type, 
-                               obj.object_identity);
+                               v_obj.object_type, 
+                               v_obj.object_identity);
 
-                -- Notificación técnica limpia
-                RAISE NOTICE 'AUDIT: Revocado EXECUTE a PUBLIC en %: %', 
-                             upper(obj.object_type), 
-                             obj.object_identity;
+                -- Notificación condicional
+                IF v_show_notice THEN
+                    RAISE NOTICE 'AUDIT: Revocado EXECUTE a PUBLIC en %: %', 
+                                 upper(v_obj.object_type), 
+                                 v_obj.object_identity;
+                END IF;
             END IF;
             
         END IF;
