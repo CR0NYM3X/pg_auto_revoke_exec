@@ -54,8 +54,25 @@ SELECT
 FROM pg_catalog.pg_proc p
 JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
 WHERE n.nspname = 'public' 
-  AND p.proname IN ('demo_fn')
+    AND p.proname IN ('demo_fn') -- nombre de la funcion
 ORDER BY p.proname;
+
+
+SELECT  
+    DISTINCT
+    a.routine_schema 
+    ,grantee AS user_name
+    ,a.routine_name 
+    ,b.routine_type
+    ,privilege_type 
+FROM information_schema.routine_privileges as a
+LEFT JOIN 
+    information_schema.routines  as b on a.routine_name=b.routine_name
+where  
+    NOT a.routine_schema in('pg_catalog','information_schema')  --- Retira este filtro si quieres ver las funciones default de postgres 
+    AND a.grantee in('PUBLIC') 
+ORDER BY a.routine_schema,a.routine_name ;
+
 ```
  
 ## 📚 Referencia oficial 
