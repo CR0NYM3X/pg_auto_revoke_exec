@@ -22,9 +22,10 @@
 
 
 -- DROP FUNCTION pg_auto_revoke_exec();
-CREATE OR REPLACE FUNCTION pg_auto_revoke_exec()
+CREATE OR REPLACE FUNCTION public.pg_auto_revoke_exec()
 RETURNS event_trigger
 SET client_min_messages='notice'
+SET search_path = public, pg_temp
 AS $$
 DECLARE 
     v_obj record;
@@ -81,5 +82,5 @@ $$ LANGUAGE plpgsql;
 CREATE EVENT TRIGGER revoke_public_execute
 ON ddl_command_end
 WHEN TAG IN ('CREATE FUNCTION', 'CREATE PROCEDURE')
-EXECUTE FUNCTION pg_auto_revoke_exec();
+EXECUTE FUNCTION public.pg_auto_revoke_exec();
 
