@@ -18,6 +18,7 @@ DECLARE
     v_error_msg      TEXT;
     v_created_dblink BOOLEAN := FALSE;
     v_deploy_sql     TEXT;
+    v_db_actual_excl TEXT; -- [AGREGADO] Variable para controlar el reporte de exclusiones
 BEGIN
     -- 1. Inicializar entorno y verbosidad
     SET client_min_messages = notice;
@@ -58,7 +59,7 @@ BEGIN
             LOOP
                 -- 2. Filtramos solo por funciones y procedimientos
                 IF v_obj.object_type IN ('function', 'procedure') THEN
-                                   
+                                    
                     -- 3. Validación rápida de privilegios para PUBLIC
                     SELECT pg_catalog.has_function_privilege('public', v_obj.objid, 'execute') 
                     INTO v_has_public_access;
@@ -137,14 +138,36 @@ BEGIN
         RAISE NOTICE '>> [ENTORNO] Extensión dblink temporal removida con éxito.';
     END IF;
 
+    -- =========================================================================
+    -- [AGREGADO] REPORTE FINAL DE BASES DE DATOS EXCLUIDAS (Validación fuera del bucle)
+    -- =========================================================================
+    IF NOT EXISTS (SELECT 1 FROM unnest(v_dbs_to_exclude) e WHERE LOWER(e) = 'none') THEN
+        RAISE NOTICE '=========================================================================';
+        RAISE NOTICE 'DETALLE DE BASES DE DATOS EXCLUIDAS POR CONFIGURACIÓN:';
+        RAISE NOTICE '=========================================================================';
+        
+        FOR v_db_actual_excl IN 
+            SELECT datname 
+            FROM pg_database 
+            WHERE 
+                (EXISTS (SELECT 1 FROM unnest(v_dbs_to_include) i WHERE LOWER(i) = 'all') OR datname = ANY(v_dbs_to_include))
+                AND (datname = ANY(v_dbs_to_exclude))
+        LOOP
+            RAISE NOTICE '>> [EXCLUIDA] Base de datos omitida: %', v_db_actual_excl;
+        END LOOP;
+    END IF;
+
     RAISE NOTICE '=========================================================================';
     RAISE NOTICE 'DESPLIEGUE MASIVO PROCESADO COMPLETAMENTE';
     RAISE NOTICE '=========================================================================';
 
 EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_error_msg = MESSAGE_TEXT;
-    IF dblink_get_connections() @> ARRAY[v_db_conn_name] THEN
+    -- Asegurar cierre de dblink en caso de un trueno global masivo
+    BEGIN
         PERFORM dblink_disconnect(v_db_conn_name);
-    END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
     RAISE EXCEPTION 'Fallo crítico global durante la orquestación: %', v_error_msg;
 END $$;
