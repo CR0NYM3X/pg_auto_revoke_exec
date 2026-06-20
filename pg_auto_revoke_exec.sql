@@ -61,7 +61,7 @@ BEGIN
             IF v_has_public_access THEN
             
                 -- Ejecución del REVOKE
-                EXECUTE format('REVOKE EXECUTE ON %s %s FROM PUBLIC', 
+                EXECUTE pg_catalog.format('REVOKE EXECUTE ON %s %s FROM PUBLIC', 
                                v_obj.object_type, 
                                v_obj.object_identity);
 
