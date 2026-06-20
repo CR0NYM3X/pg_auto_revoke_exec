@@ -7,7 +7,7 @@ DECLARE
     v_dbs_to_include TEXT[] := ARRAY['all'];  
     
     -- v_dbs_to_exclude: Usa ARRAY['none'] para no omitir ninguna, o especifica ARRAY['db_segura', 'postgres']
-    v_dbs_to_exclude TEXT[] := ARRAY['none']; 
+    v_dbs_to_exclude TEXT[] := ARRAY['template0']; 
 
     -- Variables de control de infraestructura
     v_db             TEXT;
